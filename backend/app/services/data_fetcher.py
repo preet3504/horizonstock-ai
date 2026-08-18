@@ -5,21 +5,31 @@ logger = logging.getLogger(__name__)
 
 def fetch_stock_fundamentals(symbol: str) -> dict:
     """
-    Fetches stock fundamentals using openscreener.
+    Fetches stock fundamentals using openscreener safely.
     """
     try:
         stock = Stock(symbol, consolidated=True)
-        return {
-            "summary": stock.summary(),
-            "pros_cons": stock.pros_cons(),
-            "peers": stock.peers(),
-            "quarterly_results": stock.quarterly_results(),
-            "profit_loss": stock.profit_loss(),
-            "balance_sheet": stock.balance_sheet(),
-            "cash_flow": stock.cash_flow(),
-            "ratios": stock.ratios(),
-            "shareholding": stock.shareholding(frequency="quarterly"),
-        }
     except Exception as e:
-        logger.error(f"Error fetching data for {symbol}: {e}")
+        logger.error(f"Failed to initialize Stock for {symbol}: {e}")
         raise e
+
+    data = {}
+    
+    def safe_fetch(method_name, default=None):
+        try:
+            return getattr(stock, method_name)()
+        except Exception as e:
+            logger.warning(f"Failed to fetch {method_name} for {symbol}: {e}")
+            return default if default is not None else {}
+
+    data["summary"] = safe_fetch("summary")
+    data["pros_cons"] = safe_fetch("pros_cons")
+    data["peers"] = safe_fetch("peers")
+    data["quarterly_results"] = safe_fetch("quarterly_results", [])
+    data["profit_loss"] = safe_fetch("profit_loss", [])
+    data["balance_sheet"] = safe_fetch("balance_sheet", [])
+    data["cash_flow"] = safe_fetch("cash_flow", [])
+    data["ratios"] = safe_fetch("ratios", [])
+    data["shareholding"] = safe_fetch("shareholding", [])
+
+    return data
