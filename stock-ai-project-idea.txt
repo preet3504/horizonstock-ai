@@ -1,0 +1,110 @@
+================================================================
+PROJECT IDEA: AI STOCK ANALYSIS & RECOMMENDATION PLATFORM
+================================================================
+
+1. OVERVIEW
+-----------
+An AI-powered web application where a user simply types a company
+or stock name. The backend automatically fetches the company's
+fundamental financial data, performs technical/chart analysis, and
+returns a clear, structured verdict on the frontend -- including
+whether the stock looks buyable and for what kind of holding
+period, from a 1-week trade to a 2-year hold. No manual data
+entry, no manual PDF uploads.
+
+2. PROBLEM STATEMENT
+---------------------
+Retail investors rely on scattered tools -- fundamentals on one
+site, charts on another, annual reports read by hand -- and spend
+hours calculating ratios and eyeballing price trends. There is no
+single place that combines rule-based fundamental screening,
+technical signal detection, and AI-assisted qualitative judgement
+into one plain-language recommendation on WHEN to buy or hold.
+
+3. WHAT THE APPLICATION DOES
+-----------------------------
+User enters a stock name or symbol (with autocomplete).
+
+Backend automatically:
+  a) Resolves the input to NSE/BSE/ISIN identifiers
+  b) Fetches 5+ years of fundamental data -- P&L, balance sheet,
+     cash flow, ratios, shareholding pattern -- from structured
+     data sources
+  c) Fetches the latest annual report and extracts qualitative
+     governance signals (auditor remarks, contingent liabilities,
+     related-party transactions) using an LLM via LangChain
+  d) Fetches price history and computes technical/chart indicators
+     (trend, momentum, support/resistance, moving averages, volume
+     patterns -- rules to be defined in a separate technical
+     analysis document)
+  e) Runs everything through the Fundamental Rule Engine (34 rules,
+     Green/Yellow/Red) and a Technical Rule Engine
+  f) Combines both into a single composite verdict
+
+Frontend displays:
+  a) Composite score and overall verdict (Strong Candidate /
+     Watchlist / High Risk)
+  b) Section-wise breakdown (Valuation, Quarterly Results, Balance
+     Sheet, Cash Flow, Governance, Technical) with flags and short
+     AI-generated explanations for each
+  c) A recommended holding-horizon view, since a stock can be a
+     poor short-term trade but a strong long-term hold, or the
+     reverse:
+       - Short-term   (1 week  - 3 months) -- momentum-driven view
+       - Medium-term  (3 months - 1 year)  -- earnings-cycle view
+       - Long-term    (1 - 2 years)        -- fundamentals view
+     Each bucket gets its own Buy / Hold / Avoid signal.
+  d) Supporting charts -- price trend and key ratio trends over
+     time
+
+4. KEY FEATURES (MVP SCOPE)
+----------------------------
+  - Stock search / autocomplete (name -> symbol resolution)
+  - Automated fundamental data pipeline (structured API +
+    LangChain extraction for qualitative notes)
+  - Fundamental Rule Engine (already specified -- 34 rules across
+    5 categories)
+  - Technical / Chart Rule Engine (next document)
+  - Composite scoring + horizon-based recommendation logic
+  - Dashboard frontend: score gauge, flag breakdown, charts,
+    plain-language AI summary
+  - Clear disclaimer -- analytical tool, not investment advice
+
+5. FUTURE / STRETCH FEATURES
+------------------------------
+  - Watchlist / portfolio tracking with alerts when a flag changes
+  - Peer comparison view
+  - Concall and news sentiment monitoring
+  - Backtesting the rule engine against historical outcomes
+  - User-configurable rule weights and thresholds
+
+6. TECH STACK
+---------------
+  Backend:        Python, FastAPI
+  AI layer:       LangChain + Claude (or other LLM) for
+                   qualitative extraction and plain-language
+                   summaries
+  Validation:     Pydantic (schema mirrors the data specification)
+  Data sources:   NSE/BSE structured APIs or a managed provider,
+                   plus annual report PDFs via corporate filings
+  Database:       PostgreSQL (structured data) + Redis (cache)
+  Frontend:       React / Next.js + a charting library (Recharts
+                   or Chart.js) for price and ratio visualizations
+  Orchestration:  Celery + Redis, or async FastAPI background
+                   tasks, for scheduled data refresh
+
+7. SUCCESS CRITERIA
+---------------------
+  - A user can search any NSE/BSE-listed stock by name and receive
+    a full analysis with zero manual data entry or upload
+  - Every flag in the output traces back to an exact rule and an
+    exact number -- never a black-box AI opinion
+  - Composite scores hold up reasonably well against known-good and
+    known-bad stocks used as sanity checks during testing
+
+8. DISCLAIMER
+---------------
+This is an analytical decision-support tool built on transparent,
+rule-based logic plus AI-assisted qualitative extraction. It does
+not constitute investment advice. Final decisions remain with the
+user.
