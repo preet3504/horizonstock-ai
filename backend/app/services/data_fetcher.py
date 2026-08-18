@@ -9,6 +9,10 @@ def fetch_stock_fundamentals(symbol: str) -> dict:
     """
     try:
         stock = Stock(symbol, consolidated=True)
+        # Check if consolidated data exists. If not, fallback to standalone.
+        if not stock.profit_loss():
+            logger.info(f"No consolidated data found for {symbol}, falling back to standalone.")
+            stock = Stock(symbol, consolidated=False)
     except Exception as e:
         logger.error(f"Failed to initialize Stock for {symbol}: {e}")
         raise e
