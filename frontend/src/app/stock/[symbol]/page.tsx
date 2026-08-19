@@ -6,6 +6,7 @@ import { ArrowLeft, RefreshCw, BarChart2, TrendingUp, DollarSign, Activity } fro
 import { useStockAnalysis } from '@/hooks/api/useStockAnalysis';
 import { MasterDataTable } from '@/components/features/dashboard/MasterDataTable';
 import { HistoricalTable } from '@/components/features/dashboard/HistoricalTable';
+import TradingViewWidget from '@/components/features/charts/TradingViewWidget';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -86,8 +87,13 @@ export default function StockDashboard({ params }: { params: Promise<{ symbol: s
             transition={{ delay: 0.2 }}
             className="space-y-16"
           >
-            {/* Master Data Grid */}
+            {/* Interactive Chart */}
             <section className="pt-8">
+              <TradingViewWidget symbol={symbol} />
+            </section>
+
+            {/* Master Data Grid */}
+            <section>
               <MasterDataTable data={data.master_data} />
             </section>
 
