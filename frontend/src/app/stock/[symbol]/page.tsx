@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from 'framer-motion';
+import { AIVerdictHeader } from '@/components/features/stock/AIVerdictHeader';
 
 export default function StockDashboard({ params }: { params: Promise<{ symbol: string }> }) {
   const resolvedParams = use(params);
@@ -64,6 +65,12 @@ export default function StockDashboard({ params }: { params: Promise<{ symbol: s
         {/* Loading State */}
         {isLoading && (
           <div className="space-y-6">
+            {/* AI Verdict Skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <Skeleton className="h-40 col-span-1 lg:col-span-5 glass-card rounded-2xl" />
+              <Skeleton className="h-40 col-span-1 lg:col-span-7 glass-card rounded-2xl" />
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-40 glass-card rounded-2xl" />)}
             </div>
@@ -92,9 +99,16 @@ export default function StockDashboard({ params }: { params: Promise<{ symbol: s
               <TradingViewWidget symbol={symbol} />
             </section>
 
+            {/* AI Analysis Verdict */}
+            {data.ai_analysis && (
+              <section>
+                <AIVerdictHeader analysis={data.ai_analysis} />
+              </section>
+            )}
+
             {/* Master Data Grid */}
             <section>
-              <MasterDataTable data={data.master_data} />
+              <MasterDataTable data={data.master_data} aiFlags={data.ai_analysis?.category_flags} />
             </section>
 
             {/* Historical Tables */}

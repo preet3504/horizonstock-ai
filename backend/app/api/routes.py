@@ -7,6 +7,7 @@ from app.schemas.stock import StockAnalysisResponse
 from app.services.data_fetcher import fetch_stock_fundamentals
 from app.services.data_mapper import map_raw_to_master
 from app.services.history_fetcher import fetch_stock_history
+from app.services.ai_analyzer import GroqAnalyzerService
 
 router = APIRouter()
 pool = ProcessPoolExecutor(max_workers=2)
@@ -19,11 +20,20 @@ async def analyze_stock(symbol: str):
         
         master_data = map_raw_to_master(raw_data)
         
+        try:
+            # Instantiate lazily to avoid startup crash if API key is missing
+            analyzer = GroqAnalyzerService()
+            ai_analysis = await analyzer.analyze(master_data)
+        except Exception as e:
+            print(f"AI Analysis failed: {e}")
+            ai_analysis = None
+        
         return StockAnalysisResponse(
             symbol=symbol,
             summary=raw_data.get("summary", {}),
             fundamentals=raw_data,
-            master_data=master_data
+            master_data=master_data,
+            ai_analysis=ai_analysis
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

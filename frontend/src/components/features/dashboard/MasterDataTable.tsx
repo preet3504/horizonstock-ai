@@ -1,9 +1,21 @@
-import { StockMasterData } from "@/types/stock"
+import { StockMasterData, RuleFlag } from "@/types/stock"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { motion } from "framer-motion"
 import { Activity, Briefcase, TrendingUp, DollarSign } from "lucide-react"
 
-export function MasterDataTable({ data }: { data: StockMasterData }) {
+const KEY_TO_RULE_MAP: Record<string, string> = {
+  'pe': 'VAL-01',
+  'bookValue': 'VAL-02',
+  'roce': 'VAL-04',
+  'roe': 'VAL-05',
+  'salesYoYGrowth': 'QTR-01',
+  'operatingProfitGrowth': 'QTR-03',
+  'netProfitGrowth': 'QTR-09',
+  'debtToEquity': 'BAL-05',
+  'cfo': 'CF-01',
+};
+
+export function MasterDataTable({ data, aiFlags = [] }: { data: StockMasterData, aiFlags?: RuleFlag[] }) {
   const entries = Object.entries(data).filter(([key, value]) => value !== null);
 
   const groups = {
@@ -40,11 +52,31 @@ export function MasterDataTable({ data }: { data: StockMasterData }) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.03 }}
                 whileHover={{ scale: 1.02 }}
-                className="glass-card p-3 rounded-xl flex flex-col justify-between overflow-hidden"
+                className="glass-card p-3 rounded-xl flex flex-col justify-between overflow-hidden relative group"
               >
-                <span className="text-xs font-semibold text-muted-foreground mb-1 block truncate">
-                  {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                </span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-semibold text-muted-foreground block truncate">
+                    {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                  </span>
+                  
+                  {/* AI Flag Indicator */}
+                  {(() => {
+                    const mappedRule = KEY_TO_RULE_MAP[key];
+                    const flag = aiFlags.find(f => f.rule_id === mappedRule && f.flag !== 'N/A');
+                    if (!flag) return null;
+                    
+                    const colorClass = flag.flag === 'GREEN' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 
+                                       flag.flag === 'RED' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : 
+                                       'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]';
+                                       
+                    return (
+                      <div 
+                        className={`w-2 h-2 rounded-full ${colorClass} cursor-help`}
+                        title={flag.plain_language_reason}
+                      />
+                    );
+                  })()}
+                </div>
                 <span className={`text-lg font-bold tracking-tight font-mono truncate ${
                   isPositive ? 'text-emerald-600' : 
                   isNegative ? 'text-destructive' : 

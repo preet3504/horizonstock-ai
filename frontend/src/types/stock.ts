@@ -82,9 +82,35 @@ export interface StockMasterData {
   marketCap: number | null;
 }
 
+export interface RuleFlag {
+  rule_id: string;
+  flag: "GREEN" | "YELLOW" | "RED" | "N/A";
+  calculation_reasoning: string;
+  plain_language_reason: string;
+}
+
+export interface HorizonVerdict {
+  verdict: "Buy" | "Hold" | "Avoid";
+  reason: string;
+}
+
+export interface HorizonGroup {
+  short_term: HorizonVerdict;
+  medium_term: HorizonVerdict;
+  long_term: HorizonVerdict;
+}
+
+export interface FinalAIAnalysis {
+  overall_pros: string[];
+  overall_cons: string[];
+  horizons: HorizonGroup;
+  category_flags: RuleFlag[];
+}
+
 export interface StockAnalysisResponse {
   symbol: string;
   summary: Record<string, any>;
   fundamentals: Record<string, any>;
   master_data: StockMasterData;
+  ai_analysis?: FinalAIAnalysis;
 }
