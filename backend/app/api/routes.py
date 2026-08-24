@@ -7,7 +7,7 @@ from app.schemas.stock import StockAnalysisResponse
 from app.services.data_fetcher import fetch_stock_fundamentals
 from app.services.data_mapper import map_raw_to_master
 from app.services.history_fetcher import fetch_stock_history
-from app.services.ai_analyzer import GroqAnalyzerService
+from app.services.ai_analyzer import AIAnalyzerService
 
 router = APIRouter()
 pool = ProcessPoolExecutor(max_workers=2)
@@ -15,17 +15,23 @@ pool = ProcessPoolExecutor(max_workers=2)
 @router.get("/stocks/analyze", response_model=StockAnalysisResponse)
 async def analyze_stock(symbol: str):
     try:
+        print(f"[{symbol}] Starting stock analysis process...")
         loop = asyncio.get_running_loop()
+        
+        print(f"[{symbol}] Fetching raw fundamental data...")
         raw_data = await loop.run_in_executor(pool, fetch_stock_fundamentals, symbol)
         
+        print(f"[{symbol}] Raw data fetched. Mapping to Master Data...")
         master_data = map_raw_to_master(raw_data)
         
         try:
-            # Instantiate lazily to avoid startup crash if API key is missing
-            analyzer = GroqAnalyzerService()
+            print(f"[{symbol}] Data mapped. Starting AI Analysis...")
+            # Instantiate AIAnalyzerService
+            analyzer = AIAnalyzerService()
             ai_analysis = await analyzer.analyze(master_data)
+            print(f"[{symbol}] AI Analysis complete.")
         except Exception as e:
-            print(f"AI Analysis failed: {e}")
+            print(f"[{symbol}] AI Analysis failed: {e}")
             ai_analysis = None
         
         return StockAnalysisResponse(

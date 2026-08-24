@@ -1,9 +1,9 @@
 import asyncio
 from app.schemas.master import StockMasterData
-from app.services.ai_analyzer import GroqAnalyzerService
+from app.services.ai_analyzer import AIAnalyzerService
 
 async def main():
-    analyzer = GroqAnalyzerService()
+    analyzer = AIAnalyzerService()
     # Mock some data so Pydantic doesn't fail
     data = StockMasterData(**{
         'eps': 10.0, 'price': 100.0, 'pe': 10.0, 'industryAvgPE': 15.0, 'companyMedianPE5Y': 12.0,

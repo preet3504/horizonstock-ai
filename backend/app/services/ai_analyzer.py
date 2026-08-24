@@ -4,30 +4,30 @@ import asyncio
 from pathlib import Path
 from dotenv import load_dotenv
 
-from langchain_groq import ChatGroq
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import SystemMessage, HumanMessage
+import ollama
+from ollama import AsyncClient
 from langchain_core.output_parsers import PydanticOutputParser
+import re
 
 from app.schemas.ai_analysis import CategoryEvaluation, FinalAIAnalysis, RuleFlag, HorizonGroup, HorizonVerdict
 from app.schemas.master import StockMasterData
 
 load_dotenv()
 
-# We need the GROQ_API_KEY to be set
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
-class GroqAnalyzerService:
+class AIAnalyzerService:
     def __init__(self):
-        if not GROQ_API_KEY:
-            raise ValueError("GROQ_API_KEY is not set in environment variables.")
+        # We use the specified cloud model for strict reasoning
+        self.model = 'gpt-oss:120b'
         
-        # We use a fast and highly capable model for strict reasoning
-        self.llm = ChatGroq(
-            api_key=GROQ_API_KEY,
-            model="qwen/qwen3.6-27b",
-            temperature=0,  # Zero temperature for deterministic financial math
-            max_tokens=1500
+        api_key = os.getenv("OLLAMA_API_KEY")
+        if not api_key:
+            raise ValueError("OLLAMA_API_KEY is not set in environment variables. Please add it to your .env file.")
+            
+        # Initialize a single, authenticated async client
+        # Hardcoding host to https://ollama.com as per official docs
+        self.client = AsyncClient(
+            host="https://ollama.com",
+            headers={'Authorization': 'Bearer ' + api_key}
         )
         
         # Read the rule spec to inject into the system prompt
@@ -43,13 +43,24 @@ class GroqAnalyzerService:
         """
         Evaluates a single category of rules against the raw data.
         """
-        # Extract only the relevant rules for this category to save tokens and prevent 8k TPM limits
-        relevant_rules = []
-        for line in self.rule_spec.split("\n"):
-            if line.startswith(f"### {category_prefix}-") or line.startswith("-") or not line.strip():
-                relevant_rules.append(line)
+        print(f"  -> Starting AI evaluation for category: {category_name}")
         
+        # Extract only the relevant section from the markdown to save tokens
+        relevant_rules = []
+        in_section = False
+        for line in self.rule_spec.split("\n"):
+            if line.startswith("## ") and f"(`{category_prefix}`)" in line:
+                in_section = True
+            elif line.startswith("## ") and in_section:
+                break
+            
+            if in_section:
+                relevant_rules.append(line)
+                
         local_rule_spec = "\n".join(relevant_rules)
+        if not local_rule_spec.strip():
+            # Fallback if markdown parsing fails, just send the whole thing to avoid breaking
+            local_rule_spec = self.rule_spec
         
         parser = PydanticOutputParser(pydantic_object=CategoryEvaluation)
         
@@ -62,6 +73,7 @@ CRITICAL INSTRUCTIONS (ANTI-HALLUCINATION):
 3. For every rule, show the EXACT mathematical calculation step before assigning the flag (e.g. 'PE = 15/2 = 7.5. 7.5 < 10.').
 4. If a value is missing (null/None) or the rule doesn't apply, assign 'N/A'.
 5. Do NOT guess or invent numbers. If data is missing, fail gracefully to N/A.
+6. DO NOT output any <think> tags or internal reasoning before the JSON. Start your response IMMEDIATELY with the JSON object.
 
 {parser.get_format_instructions()}
 
@@ -77,23 +89,39 @@ Here is the structured financial data (StockMasterData) in JSON format:
 """
 
         messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=user_prompt)
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': user_prompt}
         ]
         
         try:
-            response = await self.llm.ainvoke(messages)
+            response = await self.client.chat(model=self.model, messages=messages)
+            content = response['message']['content']
+            
+            # Strip <think> tags if present
+            content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
+            if content.startswith('```json'):
+                content = content[7:].strip()
+            if content.endswith('```'):
+                content = content[:-3].strip()
+
             try:
-                parsed_response: CategoryEvaluation = parser.invoke(response)
+                parsed_response: CategoryEvaluation = parser.invoke(content)
             except Exception as parse_err:
                 print(f"Initial parse failed for {category_name}, attempting to fix JSON: {parse_err}")
-                fix_prompt = f"You are a strict JSON fixer. The following JSON failed to parse. Fix the JSON so it strictly matches the schema. Output ONLY valid JSON, no markdown blocks.\n\nError: {parse_err}\n\nFailed JSON:\n{response.content}"
-                fix_response = await self.llm.ainvoke([HumanMessage(content=fix_prompt)])
-                parsed_response: CategoryEvaluation = parser.invoke(fix_response)
+                fix_prompt = f"You are a strict JSON fixer. The following JSON failed to parse. Fix the JSON so it strictly matches the schema. Output ONLY valid JSON, no markdown blocks.\n\nError: {parse_err}\n\nFailed JSON:\n{content}"
+                
+                fix_messages = [{'role': 'user', 'content': fix_prompt}]
+                fix_response = await self.client.chat(model=self.model, messages=fix_messages)
+                fix_content = re.sub(r'<think>.*?</think>', '', fix_response['message']['content'], flags=re.DOTALL).strip()
+                if fix_content.startswith('```json'): fix_content = fix_content[7:].strip()
+                if fix_content.endswith('```'): fix_content = fix_content[:-3].strip()
+                parsed_response: CategoryEvaluation = parser.invoke(fix_content)
+            
+            print(f"  -> Successfully completed evaluation for category: {category_name}")
             return parsed_response
         except Exception as e:
             import traceback
-            print(f"Error in evaluate_category ({category_name}):", repr(e))
+            print(f"  -> Error in evaluate_category ({category_name}):", repr(e))
             # Fallback gracefully if LLM parsing fails entirely
             return CategoryEvaluation(flags=[])
 
@@ -101,6 +129,7 @@ Here is the structured financial data (StockMasterData) in JSON format:
         """
         Takes all evaluated flags and synthesizes the overall Pros/Cons and Horizon Verdicts.
         """
+        print("  -> Starting final AI synthesis across all categories...")
         from pydantic import BaseModel
         from typing import List
 
@@ -122,7 +151,9 @@ Your task is to:
    - Medium Term (3 months to 1 year): Driven by earnings cycles and balance sheet.
    - Long Term (1 to 5 years): Driven by deep fundamentals (Valuation, ROCE, Cash Flow consistency).
 
-Ensure your reasoning (reason) specifically cites the rule flags provided. Do NOT invent new metrics.
+Base your reasoning strictly on the data from the provided flags, but write it in natural, professional language for an end-user. 
+CRITICAL: DO NOT include raw rule codes (e.g., 'CF-01', 'VAL-05') or color tags (e.g., 'GREEN', 'RED', 'YELLOW') in your output strings. Use proper, plain-language financial wording. Do NOT invent new metrics.
+DO NOT output any <think> tags or internal reasoning before the JSON. Start your response IMMEDIATELY with the JSON object.
 
 {parser.get_format_instructions()}
 """
@@ -134,20 +165,35 @@ Ensure your reasoning (reason) specifically cites the rule flags provided. Do NO
 Synthesize this data into the final pros, cons, and horizon verdicts."""
 
         messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=user_prompt)
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': user_prompt}
         ]
 
         try:
-            response = await self.llm.ainvoke(messages)
+            response = await self.client.chat(model=self.model, messages=messages)
+            content = response['message']['content']
+            
+            # Strip <think> tags if present
+            content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
+            if content.startswith('```json'):
+                content = content[7:].strip()
+            if content.endswith('```'):
+                content = content[:-3].strip()
+
             try:
-                parsed_response = parser.invoke(response)
+                parsed_response = parser.invoke(content)
             except Exception as parse_err:
                 print(f"Initial parse failed for synthesis, attempting to fix JSON: {parse_err}")
-                fix_prompt = f"You are a strict JSON fixer. The following JSON failed to parse. Fix the JSON so it strictly matches the schema. Output ONLY valid JSON, no markdown blocks.\n\nError: {parse_err}\n\nFailed JSON:\n{response.content}"
-                fix_response = await self.llm.ainvoke([HumanMessage(content=fix_prompt)])
-                parsed_response = parser.invoke(fix_response)
+                fix_prompt = f"You are a strict JSON fixer. The following JSON failed to parse. Fix the JSON so it strictly matches the schema. Output ONLY valid JSON, no markdown blocks.\n\nError: {parse_err}\n\nFailed JSON:\n{content}"
+                
+                fix_messages = [{'role': 'user', 'content': fix_prompt}]
+                fix_response = await self.client.chat(model=self.model, messages=fix_messages)
+                fix_content = re.sub(r'<think>.*?</think>', '', fix_response['message']['content'], flags=re.DOTALL).strip()
+                if fix_content.startswith('```json'): fix_content = fix_content[7:].strip()
+                if fix_content.endswith('```'): fix_content = fix_content[:-3].strip()
+                parsed_response = parser.invoke(fix_content)
 
+            print("  -> Successfully completed AI synthesis.")
             return {
                 "overall_pros": parsed_response.overall_pros,
                 "overall_cons": parsed_response.overall_cons,
@@ -155,7 +201,7 @@ Synthesize this data into the final pros, cons, and horizon verdicts."""
             }
         except Exception as e:
             import traceback
-            print(f"Error in generate_synthesis:", repr(e))
+            print(f"  -> Error in generate_synthesis:", repr(e))
             return {
                 "overall_pros": ["Error synthesizing data"],
                 "overall_cons": ["Error synthesizing data"],
@@ -182,6 +228,7 @@ Synthesize this data into the final pros, cons, and horizon verdicts."""
             result = await self.evaluate_category(category_name, category_prefix, data)
             if isinstance(result, CategoryEvaluation):
                 all_flags.extend(result.flags)
+            await asyncio.sleep(1) # Pace requests to respect rate limits
         
         # Run Synthesis
         synthesis_result = await self.generate_synthesis(all_flags)
