@@ -1,9 +1,24 @@
 'use client';
 
 import React, { useEffect, useRef, useState, memo } from 'react';
-import { createChart, ColorType, ISeriesApi, CandlestickSeries } from 'lightweight-charts';
+import { createChart, ColorType, ISeriesApi, CandlestickSeries, LineSeries } from 'lightweight-charts';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+
+function calculateSMA(data: any[], length: number) {
+  const smaData = [];
+  for (let i = 0; i < data.length; i++) {
+    if (i < length - 1) {
+      continue; // Not enough data points
+    }
+    let sum = 0;
+    for (let j = 0; j < length; j++) {
+      sum += data[i - j].close;
+    }
+    smaData.push({ time: data[i].time, value: sum / length });
+  }
+  return smaData;
+}
 
 interface TradingViewWidgetProps {
   symbol: string;
@@ -52,9 +67,12 @@ function TradingViewWidget({ symbol, exchange = 'NSE' }: TradingViewWidgetProps)
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const maSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
 
   const [interval, setInterval] = useState('1d');
   const [period, setPeriod] = useState('2y');
+  const [maLength, setMaLength] = useState<number>(200);
+  const [showMA, setShowMA] = useState<boolean>(true);
 
   // Fetch historical data
   const { data, isLoading, isError } = useQuery({
@@ -99,8 +117,16 @@ function TradingViewWidget({ symbol, exchange = 'NSE' }: TradingViewWidgetProps)
       wickDownColor: '#ef5350',
     });
 
+    const maSeries = chart.addSeries(LineSeries, {
+      color: '#ff9800',
+      lineWidth: 2,
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    });
+
     chartRef.current = chart;
     seriesRef.current = candlestickSeries;
+    maSeriesRef.current = maSeries;
 
     return () => {
       chart.remove();
@@ -112,11 +138,21 @@ function TradingViewWidget({ symbol, exchange = 'NSE' }: TradingViewWidgetProps)
     if (seriesRef.current && data && Array.isArray(data)) {
       // Data should be correctly formatted by the backend
       seriesRef.current.setData(data);
+      
+      if (maSeriesRef.current) {
+        if (showMA && data.length > 0) {
+          const smaData = calculateSMA(data, maLength);
+          maSeriesRef.current.setData(smaData);
+        } else {
+          maSeriesRef.current.setData([]);
+        }
+      }
+
       if (chartRef.current) {
         chartRef.current.timeScale().fitContent();
       }
     }
-  }, [data]);
+  }, [data, maLength, showMA]);
 
   return (
     <div className="w-full rounded-xl overflow-hidden border border-border/40 shadow-xl relative flex flex-col bg-[#131722]">
@@ -157,6 +193,28 @@ function TradingViewWidget({ symbol, exchange = 'NSE' }: TradingViewWidgetProps)
               {per.label}
             </button>
           ))}
+          <div className="w-[1px] h-4 bg-border/30 mx-2" />
+          <div className="flex items-center gap-2 bg-white/5 px-2 py-1 rounded">
+            <label className="text-xs text-muted-foreground font-medium flex items-center gap-1 cursor-pointer select-none">
+              <input 
+                type="checkbox" 
+                checked={showMA}
+                onChange={(e) => setShowMA(e.target.checked)}
+                className="accent-[#ff9800]"
+              />
+              MA
+            </label>
+            {showMA && (
+              <input 
+                type="number" 
+                value={maLength}
+                onChange={(e) => setMaLength(Math.max(1, parseInt(e.target.value) || 200))}
+                className="bg-transparent text-[#d1d4dc] w-12 text-center text-xs outline-none border-b border-white/20 focus:border-[#ff9800]"
+                min="1"
+                title="Moving Average Length"
+              />
+            )}
+          </div>
         </div>
       </div>
 

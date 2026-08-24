@@ -29,6 +29,9 @@ def fetch_stock_history(symbol: str, exchange: str = "NSE", interval: str = "1d"
         stock = yf.Ticker(ticker)
         df = stock.history(period=period, interval=interval)
         
+        # Drop rows with NaN values to prevent JSON serialization errors (ValueError: Out of range float values)
+        df = df.dropna(subset=['Open', 'High', 'Low', 'Close'])
+        
         if df.empty:
             logger.warning(f"No historical data found for {ticker}")
             return []
