@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, RefreshCw, Activity, ShieldAlert, BookOpen, AlertTriangle } from 'lucide-react';
 import { useStockAnalysis } from '@/hooks/api/useStockAnalysis';
@@ -13,9 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from 'framer-motion';
 import { AIScore, AIProsCons, AIHorizons } from '@/components/features/stock/AIVerdictHeader';
 
-export default function StockDashboard({ params }: { params: Promise<{ symbol: string }> }) {
-  const resolvedParams = use(params);
-  const symbol = decodeURIComponent(resolvedParams.symbol).toUpperCase();
+export default function StockDashboard() {
+  const params = useParams();
+  const symbol = decodeURIComponent((params?.symbol as string) || '').toUpperCase();
 
   const { data, isLoading, isError, error, refetch } = useStockAnalysis(symbol);
 

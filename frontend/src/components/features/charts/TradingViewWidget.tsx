@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, memo } from 'react';
 import { createChart, ColorType, ISeriesApi, CandlestickSeries, LineSeries } from 'lightweight-charts';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import { apiClient } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 
 function calculateSMA(data: any[], length: number) {
@@ -62,8 +62,9 @@ function TradingViewWidget({ symbol, exchange = 'NSE' }: TradingViewWidgetProps)
   const { data, isLoading, isError } = useQuery({
     queryKey: ['stockHistory', symbol, exchange, interval, period],
     queryFn: async () => {
-      const url = `http://localhost:8000/api/stocks/history?symbol=${symbol}&exchange=${exchange}&interval=${interval}&period=${period}`;
-      const res = await axios.get(url);
+      const res = await apiClient.get('/stocks/history', {
+        params: { symbol, exchange, interval, period },
+      });
       return res.data;
     },
     enabled: !!symbol,
