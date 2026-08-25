@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, memo } from 'react';
 import { createChart, ColorType, ISeriesApi, CandlestickSeries, LineSeries } from 'lightweight-charts';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import { Loader2 } from 'lucide-react';
 
 function calculateSMA(data: any[], length: number) {
   const smaData = [];
@@ -25,31 +26,14 @@ interface TradingViewWidgetProps {
   exchange?: 'NSE' | 'BSE';
 }
 
-const INTERVAL_GROUPS = [
-  {
-    label: 'MINUTES',
-    options: [
-      { label: '1 minute', value: '1m' },
-      { label: '5 minutes', value: '5m' },
-      { label: '15 minutes', value: '15m' },
-      { label: '30 minutes', value: '30m' },
-    ],
-  },
-  {
-    label: 'HOURS',
-    options: [
-      { label: '1 hour', value: '1h' },
-    ],
-  },
-  {
-    label: 'DAYS',
-    options: [
-      { label: '1 day', value: '1d' },
-      { label: '1 week', value: '1wk' },
-      { label: '1 month', value: '1mo' },
-      { label: '3 months', value: '3mo' },
-    ],
-  },
+const INTERVALS = [
+  { label: '1m', value: '1m' },
+  { label: '5m', value: '5m' },
+  { label: '15m', value: '15m' },
+  { label: '1H', value: '1h' },
+  { label: '1D', value: '1d' },
+  { label: '1W', value: '1wk' },
+  { label: '1M', value: '1mo' },
 ];
 
 const PERIODS = [
@@ -70,16 +54,14 @@ function TradingViewWidget({ symbol, exchange = 'NSE' }: TradingViewWidgetProps)
   const maSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
 
   const [interval, setInterval] = useState('1d');
-  const [period, setPeriod] = useState('2y');
-  const [maLength, setMaLength] = useState<number>(200);
+  const [period, setPeriod] = useState('1y');
+  const [maLength, setMaLength] = useState<number>(50);
   const [showMA, setShowMA] = useState<boolean>(true);
 
   // Fetch historical data
   const { data, isLoading, isError } = useQuery({
     queryKey: ['stockHistory', symbol, exchange, interval, period],
     queryFn: async () => {
-      // Assuming Next.js proxies or the backend runs on localhost:8000
-      // We'll use the absolute URL for safety during development
       const url = `http://localhost:8000/api/stocks/history?symbol=${symbol}&exchange=${exchange}&interval=${interval}&period=${period}`;
       const res = await axios.get(url);
       return res.data;
@@ -93,32 +75,45 @@ function TradingViewWidget({ symbol, exchange = 'NSE' }: TradingViewWidgetProps)
 
     const chart = createChart(chartContainerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#d1d5db',
+        background: { type: ColorType.Solid, color: '#0a0e17' },
+        textColor: '#6b7280',
+        fontSize: 12,
       },
       grid: {
-        vertLines: { color: 'rgba(242, 242, 242, 0.06)' },
-        horzLines: { color: 'rgba(242, 242, 242, 0.06)' },
+        vertLines: { color: 'rgba(255,255,255,0.03)' },
+        horzLines: { color: 'rgba(255,255,255,0.03)' },
       },
       crosshair: {
-        mode: 0, // Normal mode
+        mode: 0,
+        vertLine: {
+          color: 'rgba(99,102,241,0.4)',
+          labelBackgroundColor: '#4f46e5',
+        },
+        horzLine: {
+          color: 'rgba(99,102,241,0.4)',
+          labelBackgroundColor: '#4f46e5',
+        },
       },
       timeScale: {
-        borderColor: 'rgba(242, 242, 242, 0.1)',
+        borderColor: 'rgba(255,255,255,0.06)',
+        timeVisible: true,
       },
-      autoSize: true, // This enables internal resize observer in newer versions
+      rightPriceScale: {
+        borderColor: 'rgba(255,255,255,0.06)',
+      },
+      autoSize: true,
     });
 
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#26a69a',
-      downColor: '#ef5350',
+      upColor: '#10b981',
+      downColor: '#ef4444',
       borderVisible: false,
-      wickUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
+      wickUpColor: '#10b981',
+      wickDownColor: '#ef4444',
     });
 
     const maSeries = chart.addSeries(LineSeries, {
-      color: '#ff9800',
+      color: '#f59e0b',
       lineWidth: 2,
       crosshairMarkerVisible: false,
       priceLineVisible: false,
@@ -136,7 +131,6 @@ function TradingViewWidget({ symbol, exchange = 'NSE' }: TradingViewWidgetProps)
   // Update data when it changes
   useEffect(() => {
     if (seriesRef.current && data && Array.isArray(data)) {
-      // Data should be correctly formatted by the backend
       seriesRef.current.setData(data);
       
       if (maSeriesRef.current) {
@@ -155,84 +149,89 @@ function TradingViewWidget({ symbol, exchange = 'NSE' }: TradingViewWidgetProps)
   }, [data, maLength, showMA]);
 
   return (
-    <div className="w-full rounded-xl overflow-hidden border border-border/40 shadow-xl relative flex flex-col bg-[#131722]">
+    <div className="w-full flex flex-col bg-[#0a0e17] rounded-2xl overflow-hidden border border-white/[0.06]">
       
-      {/* TradingView-style Toolbar */}
-      <div className="flex flex-wrap items-center justify-between px-4 py-2 border-b border-border/20 text-sm">
-        <div className="flex items-center gap-1">
-          <select 
-            value={interval}
-            onChange={(e) => setInterval(e.target.value)}
-            className="bg-transparent text-[#d1d4dc] hover:text-white hover:bg-white/5 cursor-pointer outline-none border-none py-1 px-2 rounded transition-colors font-medium appearance-none"
-            style={{ WebkitAppearance: 'none' }}
-          >
-            {INTERVAL_GROUPS.map((group) => (
-              <optgroup key={group.label} label={group.label} className="bg-[#1e222d] text-muted-foreground font-semibold">
-                {group.options.map((opt) => (
-                  <option key={opt.value} value={opt.value} className="text-[#d1d4dc] bg-[#131722] font-normal">
-                    {opt.label}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <div className="w-[1px] h-4 bg-border/30 mx-2" />
-        </div>
+      {/* Unified Dark Toolbar */}
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
         
-        <div className="flex items-center gap-1">
+        {/* Interval Buttons */}
+        <div className="flex items-center bg-white/[0.04] rounded-lg p-0.5">
+          {INTERVALS.map((itv) => (
+            <button
+              key={itv.value}
+              onClick={() => setInterval(itv.value)}
+              className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all duration-150 ${
+                interval === itv.value 
+                  ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' 
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]'
+              }`}
+            >
+              {itv.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="w-px h-5 bg-white/10 mx-1" />
+        
+        {/* Period Buttons */}
+        <div className="flex items-center gap-0.5">
           {PERIODS.map((per) => (
             <button
               key={per.value}
               onClick={() => setPeriod(per.value)}
-              className={`px-2 py-1 rounded transition-colors font-medium ${
+              className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all duration-150 ${
                 period === per.value 
-                  ? 'text-[#2962ff]' 
-                  : 'text-[#d1d4dc] hover:text-white hover:bg-white/5'
+                  ? 'text-white bg-white/[0.08]' 
+                  : 'text-gray-500 hover:text-gray-300'
               }`}
             >
               {per.label}
             </button>
           ))}
-          <div className="w-[1px] h-4 bg-border/30 mx-2" />
-          <div className="flex items-center gap-2 bg-white/5 px-2 py-1 rounded">
-            <label className="text-xs text-muted-foreground font-medium flex items-center gap-1 cursor-pointer select-none">
-              <input 
-                type="checkbox" 
-                checked={showMA}
-                onChange={(e) => setShowMA(e.target.checked)}
-                className="accent-[#ff9800]"
-              />
-              MA
-            </label>
-            {showMA && (
-              <input 
-                type="number" 
-                value={maLength}
-                onChange={(e) => setMaLength(Math.max(1, parseInt(e.target.value) || 200))}
-                className="bg-transparent text-[#d1d4dc] w-12 text-center text-xs outline-none border-b border-white/20 focus:border-[#ff9800]"
-                min="1"
-                title="Moving Average Length"
-              />
-            )}
-          </div>
+        </div>
+
+        <div className="flex-1" />
+
+        {/* MA Toggle */}
+        <div className="flex items-center gap-2 bg-white/[0.04] rounded-lg px-3 py-1.5">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <div 
+              onClick={() => setShowMA(!showMA)}
+              className={`w-8 h-4.5 rounded-full relative transition-colors duration-200 cursor-pointer ${showMA ? 'bg-amber-500/30' : 'bg-white/10'}`}
+            >
+              <div className={`absolute top-0.5 w-3.5 h-3.5 rounded-full transition-all duration-200 ${showMA ? 'left-[calc(100%-16px)] bg-amber-400' : 'left-0.5 bg-gray-500'}`} />
+            </div>
+            <span className="text-xs font-semibold text-gray-400">MA</span>
+          </label>
+          {showMA && (
+            <input 
+              type="number" 
+              value={maLength}
+              onChange={(e) => setMaLength(Math.max(1, parseInt(e.target.value) || 50))}
+              className="bg-white/[0.06] text-amber-400 w-12 text-center text-xs font-mono font-bold outline-none rounded-md py-1 border border-white/[0.06] focus:border-amber-500/40"
+              min="1"
+              title="Moving Average Length"
+            />
+          )}
         </div>
       </div>
 
       {/* Chart Container */}
-      <div className="w-full h-[500px] lg:h-[600px] relative">
+      <div className="w-full h-[420px] md:h-[500px] lg:h-[560px] relative">
         {isLoading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-muted-foreground bg-background/50 backdrop-blur-sm">
-            Loading chart data...
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[#0a0e17]/80 backdrop-blur-sm">
+            <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
+            <span className="text-xs text-gray-500 font-medium">Loading chart...</span>
           </div>
         )}
         {isError && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-destructive bg-background/50 backdrop-blur-sm">
+          <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-rose-400 bg-[#0a0e17]/80 backdrop-blur-sm">
             Failed to load historical data.
           </div>
         )}
         {!isLoading && !isError && data && data.length === 0 && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-muted-foreground bg-background/50 backdrop-blur-sm">
-            No historical data available for this period.
+          <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-gray-500 bg-[#0a0e17]/80 backdrop-blur-sm">
+            No data available for this period.
           </div>
         )}
 
