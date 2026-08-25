@@ -114,3 +114,15 @@ export interface StockAnalysisResponse {
   master_data: StockMasterData;
   ai_analysis?: FinalAIAnalysis;
 }
+
+// ── Stock Search / Autocomplete ──
+
+export interface StockSearchResult {
+  symbol: string;
+  company_name: string;
+}
+
+export interface StockSearchResponse {
+  results: StockSearchResult[];
+  total: number;
+}
