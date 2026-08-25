@@ -108,22 +108,22 @@ export const AIProsCons = ({ analysis }: { analysis: FinalAIAnalysis }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
       {/* Strengths */}
-      <Card className="border-border/50 bg-card overflow-hidden rounded-2xl border-l-[3px] border-l-emerald-500/60">
+      <Card className="border-border/50 bg-card overflow-hidden rounded-2xl border-l-[4px] border-l-emerald-500/80 shadow-sm">
         <CardContent className="p-5 md:p-6">
-          <h3 className="text-sm font-bold text-emerald-600 flex items-center gap-2 mb-4">
-            <CheckCircle2 className="w-4 h-4" />
+          <h3 className="text-lg font-bold text-emerald-600 flex items-center gap-2 mb-4">
+            <CheckCircle2 className="w-5 h-5" />
             Strengths
           </h3>
-          <ul className="space-y-3">
+          <ul className="space-y-3.5">
             {analysis.overall_pros.map((pro, idx) => (
               <motion.li 
                 initial={{ opacity: 0, x: -8 }} 
                 animate={{ opacity: 1, x: 0 }} 
                 transition={{ delay: 0.05 * idx }}
                 key={idx} 
-                className="text-sm text-foreground/85 flex items-start leading-relaxed"
+                className="text-base text-foreground font-medium flex items-start leading-relaxed"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0 mt-2 mr-3"></span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500/80 shrink-0 mt-2 mr-3 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
                 <span>{pro}</span>
               </motion.li>
             ))}
@@ -132,22 +132,22 @@ export const AIProsCons = ({ analysis }: { analysis: FinalAIAnalysis }) => {
       </Card>
 
       {/* Risks */}
-      <Card className="border-border/50 bg-card overflow-hidden rounded-2xl border-l-[3px] border-l-rose-500/60">
+      <Card className="border-border/50 bg-card overflow-hidden rounded-2xl border-l-[4px] border-l-rose-500/80 shadow-sm">
         <CardContent className="p-5 md:p-6">
-          <h3 className="text-sm font-bold text-rose-600 flex items-center gap-2 mb-4">
-            <XCircle className="w-4 h-4" />
+          <h3 className="text-lg font-bold text-rose-600 flex items-center gap-2 mb-4">
+            <XCircle className="w-5 h-5" />
             Risks & Red Flags
           </h3>
-          <ul className="space-y-3">
+          <ul className="space-y-3.5">
             {analysis.overall_cons.map((con, idx) => (
               <motion.li 
                 initial={{ opacity: 0, x: -8 }} 
                 animate={{ opacity: 1, x: 0 }} 
                 transition={{ delay: 0.05 * idx }}
                 key={idx} 
-                className="text-sm text-foreground/85 flex items-start leading-relaxed"
+                className="text-base text-foreground font-medium flex items-start leading-relaxed"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500/60 shrink-0 mt-2 mr-3"></span>
+                <span className="w-2 h-2 rounded-full bg-rose-500/80 shrink-0 mt-2 mr-3 shadow-[0_0_8px_rgba(244,63,94,0.5)]"></span>
                 <span>{con}</span>
               </motion.li>
             ))}
@@ -178,20 +178,20 @@ const HorizonBadge = ({ title, data, delay, icon: Icon }: { title: string, data:
       transition={{ delay, duration: 0.25 }}
       className="flex flex-col p-4 rounded-xl border border-border/40 bg-background/30 hover:bg-background/60 transition-all duration-200"
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3.5">
         <div className="flex items-center gap-2.5">
-          <Icon className="w-4 h-4 text-muted-foreground/60" />
-          <span className="text-xs font-bold text-foreground/70 uppercase tracking-wider">{title}</span>
+          <Icon className="w-4 h-4 text-foreground/80" />
+          <span className="text-sm font-bold text-foreground uppercase tracking-wider">{title}</span>
         </div>
         <div className={`px-3 py-1 rounded-full border flex items-center gap-1.5 font-bold text-[11px] tracking-wider ${style.badge} ${style.glow}`}>
           {getVerdictIcon(data.verdict)}
           {data.verdict.toUpperCase()}
         </div>
       </div>
-      <ul className="space-y-2">
+      <ul className="space-y-2.5">
         {sentences.slice(0, 3).map((sentence, idx) => (
-          <li key={idx} className="text-xs text-muted-foreground/80 flex items-start leading-relaxed">
-            <span className="w-1 h-1 rounded-full bg-muted-foreground/30 shrink-0 mt-1.5 mr-2.5"></span>
+          <li key={idx} className="text-sm text-foreground/90 font-medium flex items-start leading-relaxed">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary/50 shrink-0 mt-1.5 mr-3"></span>
             <span className="flex-1">{sentence}</span>
           </li>
         ))}
@@ -204,14 +204,14 @@ const HorizonBadge = ({ title, data, delay, icon: Icon }: { title: string, data:
 export const AIHorizons = ({ analysis }: { analysis: FinalAIAnalysis }) => {
   if (!analysis) return null;
   return (
-    <Card className="border-border/50 bg-card flex-1 rounded-2xl flex flex-col">
-      <CardHeader className="pb-4 border-b border-border/30">
-        <CardTitle className="text-sm font-bold flex items-center gap-2.5 text-foreground/80">
-          <Target className="w-4 h-4 text-primary" />
+    <Card className="border-border/50 bg-card flex-1 rounded-2xl flex flex-col shadow-sm">
+      <CardHeader className="pb-4 border-b border-border/30 bg-muted/20">
+        <CardTitle className="text-lg font-bold flex items-center gap-2.5 text-foreground">
+          <Target className="w-5 h-5 text-primary" />
           Investment Horizons
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4 space-y-3 flex-1 overflow-y-auto">
+      <CardContent className="p-5 space-y-4 flex-1 overflow-y-auto">
         <HorizonBadge title="Short Term" data={analysis.horizons.short_term} delay={0.1} icon={Clock} />
         <HorizonBadge title="Medium Term" data={analysis.horizons.medium_term} delay={0.15} icon={Calendar} />
         <HorizonBadge title="Long Term" data={analysis.horizons.long_term} delay={0.2} icon={Target} />
