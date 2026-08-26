@@ -1,10 +1,3 @@
-import os
-from pathlib import Path
-from dotenv import load_dotenv
-
-# Explicitly load the common .env from the root directory
-load_dotenv(dotenv_path=Path(__file__).parent.parent.parent / ".env")
-
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

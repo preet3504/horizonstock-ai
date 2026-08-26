@@ -3,6 +3,7 @@ import json
 import asyncio
 from pathlib import Path
 from dotenv import load_dotenv
+
 import ollama
 from ollama import AsyncClient
 from langchain_core.output_parsers import PydanticOutputParser
@@ -11,8 +12,7 @@ import re
 from app.schemas.ai_analysis import CategoryEvaluation, FinalAIAnalysis, RuleFlag, HorizonGroup, HorizonVerdict
 from app.schemas.master import StockMasterData
 
-# Explicitly load the common .env from the root directory
-load_dotenv(dotenv_path=Path(__file__).parent.parent.parent.parent / ".env")
+load_dotenv()
 
 class AIAnalyzerService:
     def __init__(self):
