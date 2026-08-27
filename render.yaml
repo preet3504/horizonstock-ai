@@ -1,0 +1,40 @@
+# ── HorizonStock AI — Render Infrastructure as Code ──────────
+# This file defines both services for automatic deployment.
+# Docs: https://docs.render.com/infrastructure-as-code
+# ─────────────────────────────────────────────────────────────
+
+services:
+  # ── Backend: FastAPI (Python + Docker) ───────────────────
+  - type: web
+    name: horizonstock-api
+    runtime: docker
+    region: oregon
+    plan: free
+    rootDir: ./backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: FRONTEND_URL
+        sync: false  # Set manually after frontend deploys
+      - key: GROQ_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: OLLAMA_API_KEY
+        sync: false
+      - key: OLLAMA_HOST
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "False"
+
+  # ── Frontend: Next.js (Node.js + Docker) ─────────────────
+  - type: web
+    name: horizonstock-web
+    runtime: docker
+    region: oregon
+    plan: free
+    rootDir: ./frontend
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false  # Set manually: https://horizonstock-api.onrender.com/api

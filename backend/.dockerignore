@@ -1,0 +1,15 @@
+.venv
+venv/
+env/
+__pycache__
+*.pyc
+*.pyo
+.git
+.gitignore
+.env
+.env.example
+nse_nifty500_fetcher.py
+test_*.py
+*.log
+.idea/
+.vscode/
