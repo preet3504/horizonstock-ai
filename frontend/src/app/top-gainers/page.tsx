@@ -1,12 +1,29 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTopGainers } from '@/hooks/api/useTopGainers';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
 export default function TopGainersPage() {
-  const [minGain, setMinGain] = useState(5.0);
-  const { data, isLoading, isError } = useTopGainers(minGain);
+  const [sliderValue, setSliderValue] = useState(5.0); // For UI update
+  const [apiMinGain, setApiMinGain] = useState(5.0);   // For API trigger
+  const { data, isLoading, isError } = useTopGainers(apiMinGain);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Reset page when new data is fetched
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [apiMinGain]);
+
+  const totalItems = data?.gainers.length || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const currentGainers = data?.gainers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  ) || [];
 
   return (
     <main className="min-h-screen bg-background text-foreground p-6 md:p-12 relative overflow-hidden">
@@ -27,25 +44,27 @@ export default function TopGainersPage() {
               NIFTY 500 stocks currently surging in the live market session.
             </p>
           </div>
-          
+
           {/* Customization Control */}
-          <div className="glass-card p-4 rounded-xl flex items-center gap-4 border border-border/50">
+          <div className="glass-panel p-4 rounded-xl flex items-center gap-4 border border-border/50">
             <span className="text-sm font-medium whitespace-nowrap">Min Gain %:</span>
-            <input 
-              type="range" 
-              min="1" 
-              max="20" 
-              step="0.5" 
-              value={minGain} 
-              onChange={(e) => setMinGain(parseFloat(e.target.value))}
-              className="w-32 md:w-48 accent-primary"
+            <input
+              type="range"
+              min="1"
+              max="20"
+              step="0.5"
+              value={sliderValue}
+              onChange={(e) => setSliderValue(parseFloat(e.target.value))}
+              onMouseUp={() => setApiMinGain(sliderValue)}
+              onTouchEnd={() => setApiMinGain(sliderValue)}
+              className="w-32 md:w-48 accent-primary cursor-pointer"
             />
-            <span className="w-12 text-right font-mono text-primary font-bold">{minGain}%</span>
+            <span className="w-12 text-right font-mono text-primary font-bold">{sliderValue}%</span>
           </div>
         </div>
 
         {/* Data Table Area */}
-        <div className="glass-card rounded-2xl border border-border/40 overflow-hidden shadow-xl bg-card/30 backdrop-blur-sm">
+        <div className="glass-panel rounded-2xl border border-border/40 overflow-hidden shadow-xl bg-card/30 backdrop-blur-sm">
           {isLoading ? (
             <div className="h-64 flex items-center justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -54,51 +73,78 @@ export default function TopGainersPage() {
             <div className="h-64 flex items-center justify-center text-red-400">
               Failed to fetch live market data. Please try again.
             </div>
-          ) : !data || data.gainers.length === 0 ? (
+          ) : totalItems === 0 ? (
             <div className="h-64 flex items-center justify-center text-muted-foreground">
-              No NIFTY 500 stocks currently have a gain above {minGain}%.
+              No NIFTY 500 stocks currently have a gain above {apiMinGain}%.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-muted-foreground uppercase bg-muted/20 border-b border-border/40">
-                  <tr>
-                    <th className="px-6 py-4 font-semibold tracking-wider">Symbol</th>
-                    <th className="px-6 py-4 font-semibold tracking-wider">Last Price</th>
-                    <th className="px-6 py-4 font-semibold tracking-wider">Change</th>
-                    <th className="px-6 py-4 font-semibold tracking-wider">Gain %</th>
-                    <th className="px-6 py-4 font-semibold tracking-wider">Volume</th>
-                    <th className="px-6 py-4 font-semibold tracking-wider text-right">Updated</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.gainers.map((stock, index) => (
-                    <motion.tr 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      key={stock.symbol} 
-                      className="border-b border-border/20 hover:bg-muted/10 transition-colors"
+            <div className="flex flex-col">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-muted-foreground uppercase bg-muted/20 border-b border-border/40">
+                    <tr>
+                      <th className="px-6 py-4 font-semibold tracking-wider">Symbol</th>
+                      <th className="px-6 py-4 font-semibold tracking-wider">Last Price</th>
+                      <th className="px-6 py-4 font-semibold tracking-wider">Change</th>
+                      <th className="px-6 py-4 font-semibold tracking-wider">Gain %</th>
+                      <th className="px-6 py-4 font-semibold tracking-wider">Volume</th>
+                      <th className="px-6 py-4 font-semibold tracking-wider text-right">Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentGainers.map((stock, index) => (
+                      <motion.tr
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        key={stock.symbol}
+                        className="border-b border-border/20"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="font-bold text-foreground">{stock.symbol}</div>
+                          {stock.industry && <div className="text-xs text-muted-foreground truncate max-w-[200px]">{stock.industry}</div>}
+                        </td>
+                        <td className="px-6 py-4 font-mono">₹{stock.lastPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        <td className="px-6 py-4 font-mono text-green-400">+{stock.change.toFixed(2)}</td>
+                        <td className="px-6 py-4 font-mono font-bold text-green-400">+{stock.pChange.toFixed(2)}%</td>
+                        <td className="px-6 py-4 font-mono text-muted-foreground">
+                          {stock.totalTradedVolume > 1000000
+                            ? `${(stock.totalTradedVolume / 1000000).toFixed(2)}M`
+                            : `${(stock.totalTradedVolume / 1000).toFixed(1)}k`}
+                        </td>
+                        <td className="px-6 py-4 font-mono text-xs text-muted-foreground text-right">
+                          {stock.lastUpdateTime.split(' ')[1] || stock.lastUpdateTime}
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 border-t border-border/40 bg-muted/10">
+                  <span className="text-sm text-muted-foreground">
+                    Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-4 py-2 rounded-lg border border-border/50 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/30 transition-colors text-foreground"
                     >
-                      <td className="px-6 py-4">
-                        <div className="font-bold text-foreground">{stock.symbol}</div>
-                        {stock.industry && <div className="text-xs text-muted-foreground truncate max-w-[200px]">{stock.industry}</div>}
-                      </td>
-                      <td className="px-6 py-4 font-mono">₹{stock.lastPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                      <td className="px-6 py-4 font-mono text-green-400">+{stock.change.toFixed(2)}</td>
-                      <td className="px-6 py-4 font-mono font-bold text-green-400">+{stock.pChange.toFixed(2)}%</td>
-                      <td className="px-6 py-4 font-mono text-muted-foreground">
-                        {stock.totalTradedVolume > 1000000 
-                          ? `${(stock.totalTradedVolume / 1000000).toFixed(2)}M` 
-                          : `${(stock.totalTradedVolume / 1000).toFixed(1)}k`}
-                      </td>
-                      <td className="px-6 py-4 font-mono text-xs text-muted-foreground text-right">
-                        {stock.lastUpdateTime.split(' ')[1] || stock.lastUpdateTime}
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
+                      Previous
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-4 py-2 rounded-lg border border-border/50 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/30 transition-colors text-foreground"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
