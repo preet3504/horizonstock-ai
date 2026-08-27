@@ -8,6 +8,8 @@ export interface TopGainerItem {
   pChange: number;
   totalTradedVolume: number;
   lastUpdateTime: string;
+  smaValue?: number | null;
+  smaDistance?: number | null;
 }
 
 export interface TopGainersResponse {

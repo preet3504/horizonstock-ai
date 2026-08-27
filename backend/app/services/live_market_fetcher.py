@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 import requests
+import yfinance as yf
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("live_market_fetcher")
@@ -142,3 +143,46 @@ def get_top_gainers(
         if c in gainers.columns
     ]
     return gainers[display_cols]
+
+def filter_by_sma(gainers_df: pd.DataFrame, ma_length: int = 44, distance_pct: float = 1.0) -> pd.DataFrame:
+    if gainers_df.empty:
+        return gainers_df
+
+    symbols = gainers_df['symbol'].tolist()
+    tickers = [f"{sym}.NS" for sym in symbols]
+    
+    months = (ma_length // 21) + 2
+    period_str = f"{months}mo"
+    if months >= 12:
+        period_str = f"{max(1, months//12 + 1)}y"
+    if months > 120:
+        period_str = "max"
+        
+    try:
+        data = yf.download(tickers, period=period_str, progress=False)
+        if data.empty or 'Close' not in data:
+            return gainers_df
+            
+        close_data = data['Close']
+        sma_data = close_data.rolling(window=ma_length).mean()
+        
+        sma_map = {}
+        if isinstance(close_data, pd.DataFrame):
+            latest_sma = sma_data.iloc[-1]
+            for ticker, sma_val in latest_sma.items():
+                sym = str(ticker).replace('.NS', '')
+                sma_map[sym] = float(sma_val) if pd.notna(sma_val) else None
+        else:
+            latest_sma = sma_data.iloc[-1]
+            sma_map[symbols[0]] = float(latest_sma) if pd.notna(latest_sma) else None
+                
+        gainers_df['smaValue'] = gainers_df['symbol'].map(sma_map)
+        gainers_df['smaDistance'] = abs(gainers_df['lastPrice'] - gainers_df['smaValue']) / gainers_df['smaValue'] * 100
+        
+        # Filter for stocks within distance, or where SMA is not available
+        filtered_df = gainers_df[gainers_df['smaDistance'] <= distance_pct].copy()
+        return filtered_df.reset_index(drop=True)
+    except Exception as e:
+        log.error(f"Failed to calculate SMA: {e}")
+        return gainers_df
+

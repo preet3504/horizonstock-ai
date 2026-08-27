@@ -3,11 +3,17 @@ import { useState, useEffect } from 'react';
 import { useTopGainers } from '@/hooks/api/useTopGainers';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { RefreshCw } from 'lucide-react';
 
 export default function TopGainersPage() {
   const [sliderValue, setSliderValue] = useState(5.0); // For UI update
   const [apiMinGain, setApiMinGain] = useState(5.0);   // For API trigger
-  const { data, isLoading, isError } = useTopGainers(apiMinGain);
+  
+  const [maLength, setMaLength] = useState(44);
+  const [distanceSlider, setDistanceSlider] = useState(1.0); // For UI update
+  const [apiDistance, setApiDistance] = useState(1.0);       // For API trigger
+
+  const { data, isLoading, isError, refetch, isFetching } = useTopGainers(apiMinGain, maLength, apiDistance);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -15,7 +21,7 @@ export default function TopGainersPage() {
   // Reset page when new data is fetched
   useEffect(() => {
     setCurrentPage(1);
-  }, [apiMinGain]);
+  }, [apiMinGain, maLength, apiDistance]);
 
   const totalItems = data?.gainers.length || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -32,34 +38,74 @@ export default function TopGainersPage() {
 
       <div className="max-w-6xl mx-auto space-y-8 z-10 relative">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div>
             <Link href="/" className="text-muted-foreground hover:text-primary transition-colors text-sm mb-2 inline-flex items-center gap-1">
               ← Back to Home
             </Link>
-            <h1 className="text-3xl md:text-5xl font-bold tracking-tight mt-2 flex items-center gap-3">
-              🔥 Live Top Gainers
-            </h1>
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl md:text-5xl font-bold tracking-tight mt-2 flex items-center gap-3">
+                🔥 Live Top Gainers
+              </h1>
+              <button 
+                onClick={() => refetch()} 
+                disabled={isFetching}
+                className="mt-2 p-2.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 shadow-sm transition-all disabled:opacity-50"
+                title="Refresh Live Data"
+              >
+                <RefreshCw className={`w-5 h-5 ${isFetching ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
             <p className="text-muted-foreground mt-2">
               NIFTY 500 stocks currently surging in the live market session.
             </p>
           </div>
 
-          {/* Customization Control */}
-          <div className="glass-panel p-4 rounded-xl flex items-center gap-4 border border-border/50">
-            <span className="text-sm font-medium whitespace-nowrap">Min Gain %:</span>
-            <input
-              type="range"
-              min="1"
-              max="20"
-              step="0.5"
-              value={sliderValue}
-              onChange={(e) => setSliderValue(parseFloat(e.target.value))}
-              onMouseUp={() => setApiMinGain(sliderValue)}
-              onTouchEnd={() => setApiMinGain(sliderValue)}
-              className="w-32 md:w-48 accent-primary cursor-pointer"
-            />
-            <span className="w-12 text-right font-mono text-primary font-bold">{sliderValue}%</span>
+          {/* Customization Controls */}
+          <div className="flex flex-col gap-3">
+            <div className="glass-panel p-3 md:p-4 rounded-xl flex flex-wrap items-center gap-3 border border-border/50">
+              <span className="text-sm font-medium whitespace-nowrap w-24">Min Gain %:</span>
+              <input
+                type="range"
+                min="1"
+                max="20"
+                step="0.5"
+                value={sliderValue}
+                onChange={(e) => setSliderValue(parseFloat(e.target.value))}
+                onMouseUp={() => setApiMinGain(sliderValue)}
+                onTouchEnd={() => setApiMinGain(sliderValue)}
+                className="w-32 md:w-40 accent-primary cursor-pointer"
+              />
+              <span className="w-12 text-right font-mono text-primary font-bold">{sliderValue}%</span>
+            </div>
+
+            <div className="glass-panel p-3 md:p-4 rounded-xl flex flex-wrap items-center gap-3 border border-border/50">
+              <span className="text-sm font-medium whitespace-nowrap w-24">SMA Period:</span>
+              <input
+                type="number"
+                min="1"
+                max="200"
+                value={maLength}
+                onChange={(e) => setMaLength(parseInt(e.target.value) || 44)}
+                className="w-16 bg-background border border-border/50 rounded-md px-2 py-1 text-sm font-mono text-primary outline-none focus:border-primary/50"
+              />
+              
+              <div className="w-px h-6 bg-border/50 mx-2 hidden sm:block"></div>
+
+              <span className="text-sm font-medium whitespace-nowrap">Distance %:</span>
+              <input
+                type="range"
+                min="0.1"
+                max="10"
+                step="0.1"
+                value={distanceSlider}
+                onChange={(e) => setDistanceSlider(parseFloat(e.target.value))}
+                onMouseUp={() => setApiDistance(distanceSlider)}
+                onTouchEnd={() => setApiDistance(distanceSlider)}
+                className="w-24 md:w-32 accent-primary cursor-pointer"
+              />
+              <span className="w-12 text-right font-mono text-primary font-bold">{distanceSlider}%</span>
+            </div>
           </div>
         </div>
 
@@ -87,6 +133,8 @@ export default function TopGainersPage() {
                       <th className="px-6 py-4 font-semibold tracking-wider">Last Price</th>
                       <th className="px-6 py-4 font-semibold tracking-wider">Change</th>
                       <th className="px-6 py-4 font-semibold tracking-wider">Gain %</th>
+                      <th className="px-6 py-4 font-semibold tracking-wider">SMA ({maLength})</th>
+                      <th className="px-6 py-4 font-semibold tracking-wider">Dist %</th>
                       <th className="px-6 py-4 font-semibold tracking-wider">Volume</th>
                       <th className="px-6 py-4 font-semibold tracking-wider text-right">Updated</th>
                     </tr>
@@ -107,6 +155,12 @@ export default function TopGainersPage() {
                         <td className="px-6 py-4 font-mono">₹{stock.lastPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                         <td className="px-6 py-4 font-mono text-green-400">+{stock.change.toFixed(2)}</td>
                         <td className="px-6 py-4 font-mono font-bold text-green-400">+{stock.pChange.toFixed(2)}%</td>
+                        <td className="px-6 py-4 font-mono text-muted-foreground">
+                          {stock.smaValue ? `₹${stock.smaValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 font-mono text-muted-foreground">
+                          {stock.smaDistance !== undefined && stock.smaDistance !== null ? `${stock.smaDistance.toFixed(2)}%` : 'N/A'}
+                        </td>
                         <td className="px-6 py-4 font-mono text-muted-foreground">
                           {stock.totalTradedVolume > 1000000
                             ? `${(stock.totalTradedVolume / 1000000).toFixed(2)}M`

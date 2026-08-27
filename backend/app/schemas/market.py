@@ -11,6 +11,8 @@ class TopGainerItem(BaseModel):
     pChange: float
     totalTradedVolume: int
     lastUpdateTime: str
+    smaValue: Optional[float] = None
+    smaDistance: Optional[float] = None
 
 class TopGainersResponse(BaseModel):
     index: str
