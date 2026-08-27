@@ -60,6 +60,21 @@ export default function Home() {
               ))}
             </div>
           </div>
+
+          {/* Top Gainers Navigation Button */}
+          <div className="mt-12 flex items-center justify-center">
+            <Link href="/top-gainers">
+              <motion.div
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                className="group flex items-center gap-2 rounded-full bg-primary/10 px-6 py-3 text-sm font-semibold text-primary border border-primary/20 shadow-[0_0_20px_var(--color-primary)] backdrop-blur-md hover:bg-primary/20 transition-all cursor-pointer"
+              >
+                <span className="text-lg">🔥</span>
+                View Today's Top Gainers
+                <span className="group-hover:translate-x-1 transition-transform">→</span>
+              </motion.div>
+            </Link>
+          </div>
         </motion.div>
       </motion.div>
     </main>

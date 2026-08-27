@@ -10,6 +10,8 @@ from app.services.data_mapper import map_raw_to_master
 from app.services.history_fetcher import fetch_stock_history
 from app.services.ai_analyzer import AIAnalyzerService
 from app.services.stock_list_cache import stock_cache
+from app.schemas.market import TopGainersResponse, TopGainerItem
+from app.services.live_market_fetcher import get_top_gainers
 
 router = APIRouter()
 pool = ProcessPoolExecutor(max_workers=2)
@@ -81,5 +83,34 @@ async def get_stock_history(
             )
             
         return history_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/stocks/top-gainers", response_model=TopGainersResponse)
+async def fetch_top_gainers(
+    index: str = Query("NIFTY 500", description="Index to scan"),
+    min_pct_gain: float = Query(5.0, description="Minimum percentage gain")
+):
+    try:
+        loop = asyncio.get_running_loop()
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=2) as t_pool:
+            gainers_df = await loop.run_in_executor(
+                t_pool,
+                get_top_gainers,
+                index,
+                min_pct_gain
+            )
+        
+        # Convert DataFrame to list of dicts, replace NaN with None for Pydantic
+        import pandas as pd
+        gainers_df = gainers_df.replace({pd.NA: None})
+        gainers_records = gainers_df.to_dict(orient="records")
+        return TopGainersResponse(
+            index=index,
+            min_pct_gain=min_pct_gain,
+            count=len(gainers_records),
+            gainers=[TopGainerItem(**record) for record in gainers_records]
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
