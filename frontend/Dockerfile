@@ -25,6 +25,10 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+# CRITICAL: Next.js standalone binds to localhost by default.
+# Render's proxy needs 0.0.0.0 to route traffic into the container.
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
 
 # Copy only what's needed to run
 COPY --from=builder /app/public ./public
