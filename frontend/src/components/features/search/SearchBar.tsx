@@ -120,15 +120,15 @@ export function SearchBar() {
       <motion.form
         whileHover={{ scale: 1.01 }}
         onSubmit={handleSearch}
-        className={`flex w-full items-center space-x-3 glass-panel p-2 rounded-2xl transition-all duration-300 ${
+        className={`flex w-full items-center space-x-2 glass-panel p-1.5 rounded-xl transition-all duration-300 ${
           isFocused
-            ? 'border-primary/50 shadow-[0_0_40px_-10px_var(--color-primary)] bg-card/80'
-            : 'border-white/10 hover:border-white/20'
+            ? 'border-primary/50 shadow-[0_0_30px_-10px_var(--color-primary)] bg-card/80'
+            : 'border-border hover:border-primary/30'
         }`}
       >
         <div className="relative w-full">
           <Search
-            className={`absolute left-4 top-3.5 h-5 w-5 transition-colors duration-300 ${
+            className={`absolute left-3.5 top-2.5 h-4 w-4 transition-colors duration-300 ${
               isFocused ? 'text-primary' : 'text-muted-foreground'
             }`}
           />
@@ -136,7 +136,7 @@ export function SearchBar() {
             ref={inputRef}
             type="text"
             placeholder="Search NSE/BSE stocks (e.g., RELIANCE, TCS, IRFC)"
-            className="w-full pl-12 h-12 bg-transparent border-none text-foreground text-lg placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"
+            className="w-full pl-10 h-10 bg-transparent border-none text-foreground text-sm md:text-base placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setIsFocused(true)}
@@ -150,7 +150,7 @@ export function SearchBar() {
         </div>
         <Button
           type="submit"
-          className="h-12 px-8 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_15px_var(--color-primary)] opacity-90 hover:opacity-100 transition-all"
+          className="h-10 px-6 rounded-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_10px_var(--color-primary)] opacity-90 hover:opacity-100 transition-all text-sm"
         >
           Analyze
         </Button>

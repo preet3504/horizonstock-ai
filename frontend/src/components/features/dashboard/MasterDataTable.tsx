@@ -124,18 +124,18 @@ function MetricRow({
   const negative = growth && numValue < 0;
 
   const valueColor = positive
-    ? 'text-emerald-600 dark:text-emerald-400'
+    ? 'text-gain'
     : negative
-    ? 'text-rose-600 dark:text-rose-400'
+    ? 'text-loss'
     : 'text-foreground';
 
   // Flag dot colors
   const flagDot = flag && flag.flag !== 'N/A' ? (
     <span
       className={`inline-block w-[6px] h-[6px] rounded-full shrink-0 ${
-        flag.flag === 'GREEN' ? 'bg-emerald-500' :
-        flag.flag === 'RED' ? 'bg-rose-500' :
-        'bg-amber-500'
+        flag.flag === 'GREEN' ? 'bg-gain' :
+        flag.flag === 'RED' ? 'bg-loss' :
+        'bg-caution'
       }`}
       title={flag.plain_language_reason}
     />
@@ -151,7 +151,7 @@ function MetricRow({
       {/* Value + Arrow */}
       <div className="flex items-center gap-1.5 shrink-0">
         {growth && (
-          <span className={`${positive ? 'text-emerald-500' : negative ? 'text-rose-500' : 'text-muted-foreground/30'}`}>
+          <span className={`${positive ? 'text-gain' : negative ? 'text-loss' : 'text-muted-foreground/30'}`}>
             {positive ? <ArrowUpRight className="w-3 h-3" /> : negative ? <ArrowDownRight className="w-3 h-3" /> : <Minus className="w-3 h-3 opacity-30" />}
           </span>
         )}
@@ -210,10 +210,10 @@ export function MasterDataTable({ data, aiFlags = [] }: { data: StockMasterData,
 
   // Accent color map for Tailwind classes
   const accentColors: Record<string, { iconBg: string; iconText: string; border: string }> = {
-    indigo: { iconBg: 'bg-indigo-500/10', iconText: 'text-indigo-500', border: 'border-indigo-500/20' },
-    teal:   { iconBg: 'bg-teal-500/10',   iconText: 'text-teal-500',   border: 'border-teal-500/20' },
-    violet: { iconBg: 'bg-violet-500/10',  iconText: 'text-violet-500',  border: 'border-violet-500/20' },
-    amber:  { iconBg: 'bg-amber-500/10',   iconText: 'text-amber-500',   border: 'border-amber-500/20' },
+    indigo: { iconBg: 'bg-primary/10', iconText: 'text-primary', border: 'border-primary/20' },
+    teal:   { iconBg: 'bg-primary/10', iconText: 'text-primary', border: 'border-primary/20' },
+    violet: { iconBg: 'bg-primary/10', iconText: 'text-primary', border: 'border-primary/20' },
+    amber:  { iconBg: 'bg-primary/10', iconText: 'text-primary', border: 'border-primary/20' },
   };
 
   const renderSection = (section: SectionConfig, sectionIdx: number) => {

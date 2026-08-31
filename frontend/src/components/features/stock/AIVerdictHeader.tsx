@@ -1,26 +1,20 @@
 import React from 'react';
 import { FinalAIAnalysis, HorizonVerdict } from '@/types/stock';
-import { CheckCircle2, XCircle, TrendingUp, TrendingDown, Minus, BrainCircuit, Target, Clock, Calendar, Gauge } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CheckCircle2, XCircle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 const getVerdictStyle = (verdict: string) => {
   switch (verdict.toLowerCase()) {
     case 'buy': return { 
-      badge: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30',
-      glow: 'shadow-[0_0_12px_rgba(16,185,129,0.15)]',
+      badge: 'bg-gain/20 text-gain',
     };
     case 'avoid': return { 
-      badge: 'bg-rose-500/15 text-rose-600 border-rose-500/30',
-      glow: 'shadow-[0_0_12px_rgba(244,63,94,0.15)]',
+      badge: 'bg-loss/20 text-loss',
     };
     case 'hold': return { 
-      badge: 'bg-amber-500/15 text-amber-600 border-amber-500/30',
-      glow: 'shadow-[0_0_12px_rgba(245,158,11,0.15)]',
+      badge: 'bg-caution/20 text-caution',
     };
     default: return { 
-      badge: 'bg-slate-500/15 text-slate-500 border-slate-500/30',
-      glow: '',
+      badge: 'bg-muted/50 text-muted-foreground',
     };
   }
 };
@@ -41,64 +35,55 @@ export const AIScore = ({ analysis }: { analysis: FinalAIAnalysis }) => {
   const total = analysis.category_flags.filter(f => f.flag !== 'N/A').length;
   const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
   
-  const scoreColor = percentage >= 75 ? 'text-emerald-500' : percentage >= 45 ? 'text-amber-500' : 'text-rose-500';
-  const barColor = percentage >= 75 ? 'bg-emerald-500' : percentage >= 45 ? 'bg-amber-500' : 'bg-rose-500';
-  const barGlow = percentage >= 75 ? 'shadow-[0_0_8px_rgba(16,185,129,0.4)]' : percentage >= 45 ? 'shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'shadow-[0_0_8px_rgba(244,63,94,0.4)]';
+  const scoreColor = percentage >= 75 ? 'text-gain' : percentage >= 45 ? 'text-caution' : 'text-loss';
 
   // Category breakdown
-  const categories = ['VAL', 'QTR', 'BAL', 'CF', 'GOV'];
-  const catLabels: Record<string, string> = { VAL: 'Valuation', QTR: 'Quarterly', BAL: 'Balance Sheet', CF: 'Cash Flow', GOV: 'Governance' };
+  const categories = [
+    { id: 'VAL', label: 'Valuation' },
+    { id: 'QTR', label: 'Quarterly' },
+    { id: 'BAL', label: 'Balance' },
+    { id: 'CF', label: 'Cash Flow' },
+    { id: 'GOV', label: 'Governance' },
+  ];
   
   return (
-    <Card className="border-border/50 bg-card overflow-hidden rounded-2xl">
-      <CardContent className="p-5 space-y-4">
-        {/* Score Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
-              <Gauge className="w-5 h-5 text-indigo-500" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-muted-foreground/70 uppercase tracking-widest">AI Health Score</p>
-            </div>
+    <div className="border border-border bg-background p-4 flex flex-col gap-4">
+      <div className="flex items-end justify-between">
+        <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Composite Score</h3>
+        <div className="flex items-baseline gap-1">
+          <div className="flex mb-1">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div 
+                key={i} 
+                className={`w-2 h-4 mr-0.5 ${i < Math.round(percentage / 10) ? 'bg-primary' : 'bg-muted'}`}
+              />
+            ))}
           </div>
-          <span className={`text-4xl font-black tracking-tight font-mono ${scoreColor}`}>
-            {percentage}
-          </span>
+          <span className={`text-xl font-mono font-bold ml-2 ${scoreColor}`}>{percentage}/100</span>
         </div>
+      </div>
 
-        {/* Progress Bar */}
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <motion.div 
-            initial={{ width: 0 }}
-            animate={{ width: `${percentage}%` }}
-            transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
-            className={`h-full rounded-full ${barColor} ${barGlow}`}
-          />
-        </div>
-
-        {/* Mini Category Breakdown */}
-        <div className="grid grid-cols-5 gap-1.5">
-          {categories.map(cat => {
-            const catFlags = analysis.category_flags.filter(f => f.rule_id.startsWith(cat) && f.flag !== 'N/A');
-            const green = catFlags.filter(f => f.flag === 'GREEN').length;
-            const total = catFlags.length;
-            const pct = total > 0 ? Math.round((green / total) * 100) : 0;
-            
-            return (
-              <div key={cat} className="text-center p-2 bg-muted/30 rounded-lg">
-                <div className={`text-sm font-black font-mono ${pct >= 75 ? 'text-emerald-500' : pct >= 45 ? 'text-amber-500' : 'text-rose-500'}`}>
-                  {pct}%
-                </div>
-                <div className="text-[9px] text-muted-foreground/60 font-semibold uppercase tracking-wider mt-0.5 truncate">
-                  {catLabels[cat]?.split(' ')[0]}
-                </div>
+      <div className="space-y-2">
+        {categories.map(cat => {
+          const catFlags = analysis.category_flags.filter(f => f.rule_id.startsWith(cat.id) && f.flag !== 'N/A');
+          const green = catFlags.filter(f => f.flag === 'GREEN').length;
+          const total = catFlags.length;
+          const pct = total > 0 ? Math.round((green / total) * 100) : 0;
+          
+          const barColor = pct >= 75 ? 'bg-gain' : pct >= 45 ? 'bg-caution' : 'bg-loss';
+          
+          return (
+            <div key={cat.id} className="flex items-center gap-3 text-sm">
+              <div className="w-24 text-muted-foreground">{cat.label}</div>
+              <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div className={`h-full ${barColor}`} style={{ width: `${pct}%` }} />
               </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+              <div className="w-10 text-right font-mono text-xs font-semibold">{pct}%</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 };
 
@@ -106,97 +91,59 @@ export const AIScore = ({ analysis }: { analysis: FinalAIAnalysis }) => {
 export const AIProsCons = ({ analysis }: { analysis: FinalAIAnalysis }) => {
   if (!analysis) return null;
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
       {/* Strengths */}
-      <Card className="border-border/50 bg-card overflow-hidden rounded-2xl border-l-[4px] border-l-emerald-500/80 shadow-sm">
-        <CardContent className="p-5 md:p-6">
-          <h3 className="text-lg font-bold text-emerald-600 flex items-center gap-2 mb-4">
-            <CheckCircle2 className="w-5 h-5" />
-            Strengths
-          </h3>
-          <ul className="space-y-3.5">
-            {analysis.overall_pros.map((pro, idx) => (
-              <motion.li 
-                initial={{ opacity: 0, x: -8 }} 
-                animate={{ opacity: 1, x: 0 }} 
-                transition={{ delay: 0.05 * idx }}
-                key={idx} 
-                className="text-base text-foreground font-medium flex items-start leading-relaxed"
-              >
-                <span className="w-2 h-2 rounded-full bg-emerald-500/80 shrink-0 mt-2 mr-3 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                <span>{pro}</span>
-              </motion.li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      <div>
+        <h3 className="text-sm font-bold text-gain flex items-center gap-2 mb-3 uppercase tracking-wider">
+          <CheckCircle2 className="w-4 h-4" />
+          Strengths
+        </h3>
+        <ul className="space-y-2">
+          {analysis.overall_pros.map((pro, idx) => (
+            <li key={idx} className="text-sm text-foreground flex items-start leading-snug">
+              <span className="w-1.5 h-1.5 rounded-full bg-gain shrink-0 mt-1.5 mr-2" />
+              <span>{pro}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
 
       {/* Risks */}
-      <Card className="border-border/50 bg-card overflow-hidden rounded-2xl border-l-[4px] border-l-rose-500/80 shadow-sm">
-        <CardContent className="p-5 md:p-6">
-          <h3 className="text-lg font-bold text-rose-600 flex items-center gap-2 mb-4">
-            <XCircle className="w-5 h-5" />
-            Risks & Red Flags
-          </h3>
-          <ul className="space-y-3.5">
-            {analysis.overall_cons.map((con, idx) => (
-              <motion.li 
-                initial={{ opacity: 0, x: -8 }} 
-                animate={{ opacity: 1, x: 0 }} 
-                transition={{ delay: 0.05 * idx }}
-                key={idx} 
-                className="text-base text-foreground font-medium flex items-start leading-relaxed"
-              >
-                <span className="w-2 h-2 rounded-full bg-rose-500/80 shrink-0 mt-2 mr-3 shadow-[0_0_8px_rgba(244,63,94,0.5)]"></span>
-                <span>{con}</span>
-              </motion.li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      <div>
+        <h3 className="text-sm font-bold text-loss flex items-center gap-2 mb-3 uppercase tracking-wider">
+          <XCircle className="w-4 h-4" />
+          Risks & Red Flags
+        </h3>
+        <ul className="space-y-2">
+          {analysis.overall_cons.map((con, idx) => (
+            <li key={idx} className="text-sm text-foreground flex items-start leading-snug">
+              <span className="w-1.5 h-1.5 rounded-full bg-loss shrink-0 mt-1.5 mr-2" />
+              <span>{con}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 };
 
 /* ───────────── Horizon Badge ───────────── */
-const HorizonBadge = ({ title, data, delay, icon: Icon }: { title: string, data: HorizonVerdict, delay: number, icon: any }) => {
+const HorizonRow = ({ title, data }: { title: string, data: HorizonVerdict }) => {
   const style = getVerdictStyle(data.verdict);
   
-  const sentences = data.reason
-    .split('. ')
-    .filter(s => s.trim().length > 0)
-    .map(s => {
-      let text = s.trim();
-      if (!text.endsWith('.')) text += '.';
-      return text;
-    });
-
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.25 }}
-      className="flex flex-col p-4 rounded-xl border border-border/40 bg-background/30 hover:bg-background/60 transition-all duration-200"
-    >
-      <div className="flex items-center justify-between mb-3.5">
-        <div className="flex items-center gap-2.5">
-          <Icon className="w-4 h-4 text-foreground/80" />
-          <span className="text-sm font-bold text-foreground uppercase tracking-wider">{title}</span>
-        </div>
-        <div className={`px-3 py-1 rounded-full border flex items-center gap-1.5 font-bold text-[11px] tracking-wider ${style.badge} ${style.glow}`}>
-          {getVerdictIcon(data.verdict)}
-          {data.verdict.toUpperCase()}
-        </div>
+    <div className="flex items-start gap-4 py-3 border-b border-border last:border-0">
+      <div className="w-20 pt-0.5">
+        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</div>
       </div>
-      <ul className="space-y-2.5">
-        {sentences.slice(0, 3).map((sentence, idx) => (
-          <li key={idx} className="text-sm text-foreground/90 font-medium flex items-start leading-relaxed">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary/50 shrink-0 mt-1.5 mr-3"></span>
-            <span className="flex-1">{sentence}</span>
-          </li>
-        ))}
-      </ul>
-    </motion.div>
+      <div className={`px-2 py-0.5 rounded-sm flex items-center gap-1 font-bold text-xs tracking-wider uppercase shrink-0 ${style.badge}`}>
+        {getVerdictIcon(data.verdict)}
+        {data.verdict}
+      </div>
+      <div className="text-sm text-foreground/90 leading-snug">
+        {data.reason}
+      </div>
+    </div>
   );
 };
 
@@ -204,18 +151,17 @@ const HorizonBadge = ({ title, data, delay, icon: Icon }: { title: string, data:
 export const AIHorizons = ({ analysis }: { analysis: FinalAIAnalysis }) => {
   if (!analysis) return null;
   return (
-    <Card className="border-border/50 bg-card flex-1 rounded-2xl flex flex-col shadow-sm">
-      <CardHeader className="pb-4 border-b border-border/30 bg-muted/20">
-        <CardTitle className="text-lg font-bold flex items-center gap-2.5 text-foreground">
-          <Target className="w-5 h-5 text-primary" />
-          Investment Horizons
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-5 space-y-4 flex-1 overflow-y-auto">
-        <HorizonBadge title="Short Term" data={analysis.horizons.short_term} delay={0.1} icon={Clock} />
-        <HorizonBadge title="Medium Term" data={analysis.horizons.medium_term} delay={0.15} icon={Calendar} />
-        <HorizonBadge title="Long Term" data={analysis.horizons.long_term} delay={0.2} icon={Target} />
-      </CardContent>
-    </Card>
+    <div className="border border-border bg-background flex flex-col">
+      <div className="px-4 py-2 border-b border-border bg-muted/20">
+        <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
+          Horizons
+        </h3>
+      </div>
+      <div className="px-4 flex flex-col">
+        <HorizonRow title="Short" data={analysis.horizons.short_term} />
+        <HorizonRow title="Medium" data={analysis.horizons.medium_term} />
+        <HorizonRow title="Long" data={analysis.horizons.long_term} />
+      </div>
+    </div>
   );
 };

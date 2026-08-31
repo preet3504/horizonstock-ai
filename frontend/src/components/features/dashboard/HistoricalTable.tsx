@@ -139,9 +139,9 @@ export function HistoricalTable({ title, data, dateKey }: HistoricalTableProps) 
                     key={key}
                     className={`
                       border-b transition-colors duration-75 group
-                      ${isKey ? 'border-border/40 bg-muted/[0.04]' : 'border-border/20'}
-                      ${rowIdx % 2 === 1 && !isKey ? 'bg-muted/[0.02]' : ''}
-                      hover:bg-primary/[0.05]
+                      ${isKey ? 'border-border bg-muted/10' : 'border-border/50'}
+                      ${rowIdx % 2 === 1 && !isKey ? 'bg-muted/5' : ''}
+                      hover:bg-muted/20
                     `}
                   >
                     {/* Sticky metric label */}
@@ -173,14 +173,14 @@ export function HistoricalTable({ title, data, dateKey }: HistoricalTableProps) 
                           className={`
                             text-right font-mono py-2.5 px-4 tabular-nums text-sm transition-colors
                             ${isEmpty
-                              ? 'text-muted-foreground/20'
+                              ? 'text-muted-foreground/30'
                               : isNegative
-                                ? 'text-rose-600 dark:text-rose-400 font-semibold'
+                                ? 'text-loss font-semibold'
                                 : isLatest
                                   ? `text-foreground ${isKey ? 'font-bold' : 'font-semibold'}`
-                                  : 'text-foreground/60 font-normal'
+                                  : 'text-foreground/80 font-normal'
                             }
-                            ${isLatest && !isEmpty ? 'bg-primary/[0.03]' : ''}
+                            ${isLatest && !isEmpty ? 'bg-muted/10' : ''}
                           `}
                         >
                           {text}
